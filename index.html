@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="网页复制">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>网页信息复制工具 v2.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f0f2f5;--card:#fff;--text:#1a1a1a;--text2:#666;--text3:#999;--accent:#0066ff;--accent2:#0052d9;--accent-light:rgba(0,102,255,.08);--border:#e8e8e8;--border2:#f0f0f0;--shadow:0 2px 12px rgba(0,0,0,.06);--shadow2:0 4px 24px rgba(0,0,0,.1);--tag-bg:#e8f4ff;--tag-text:#0066ff;--btn-blue:#0066ff;--btn-green:#00b578;--btn-purple:#7c3aed;--btn-orange:#ff8c00;--btn-red:#e53935;--input-bg:#fff;--overlay:rgba(0,0,0,.45);--gradient:linear-gradient(135deg,#0066ff 0%,#7c3aed 100%);--card-hover:#fafbfc}
+[data-theme="dark"]{--bg:#0a0a0a;--card:#1a1a1a;--text:#e8e8e8;--text2:#999;--text3:#666;--accent:#4da3ff;--accent2:#3b8de0;--accent-light:rgba(77,163,255,.1);--border:#2a2a2a;--border2:#222;--shadow:0 2px 12px rgba(0,0,0,.3);--shadow2:0 4px 24px rgba(0,0,0,.5);--tag-bg:rgba(77,163,255,.12);--tag-text:#4da3ff;--btn-blue:#4da3ff;--btn-green:#34d399;--btn-purple:#a78bfa;--btn-orange:#fbbf24;--btn-red:#f87171;--input-bg:#222;--overlay:rgba(0,0,0,.65);--gradient:linear-gradient(135deg,#1a6dd4 0%,#6d28d9 100%);--card-hover:#222}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column;max-width:100vw;overflow-x:hidden}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding-top:calc(14px + env(safe-area-inset-top,0))}
+.header-left{display:flex;align-items:center;gap:10px}
+.header h1{font-size:17px;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header-ver{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--accent-light);color:var(--accent);font-weight:600}
+.toggle-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:none;background:var(--accent-light);cursor:pointer;border-radius:12px;font-size:18px;color:var(--accent);transition:all .2s}
+.mode-bar{display:flex;padding:4px;margin:12px 18px 0;background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.mode-btn{flex:1;padding:10px 0;border:none;border-radius:10px;font-size:14px;font-weight:600;color:var(--text2);background:transparent;cursor:pointer;transition:all .25s}
+.mode-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(0,102,255,.25)}
+.url-section{padding:12px 18px;background:var(--card);border-bottom:1px solid var(--border)}
+.url-row{display:flex;gap:8px;align-items:stretch}
+.url-input{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:12px;font-size:15px;background:var(--input-bg);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+.url-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.url-input::placeholder{color:var(--text3)}
+.fetch-btn{padding:12px 22px;border:none;border-radius:12px;background:var(--gradient);color:#fff;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;box-shadow:0 2px 12px rgba(0,102,255,.3)}
+.fetch-btn:active{transform:scale(.96);opacity:.85}
+.fetch-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.paste-btn{display:flex;align-items:center;justify-content:center;width:44px;border:none;border-radius:12px;background:var(--accent-light);color:var(--accent);font-size:18px;cursor:pointer;transition:all .2s}
+.paste-btn:active{transform:scale(.92)}
+.loading{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading.active{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:15px;font-weight:600;color:var(--text);background:var(--card);padding:12px 24px;border-radius:14px;box-shadow:var(--shadow2)}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:10px 24px;border-radius:12px;font-size:14px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.error-bar{display:none;margin:12px 18px;padding:12px 16px;background:#fef2f2;color:#dc2626;border-radius:12px;font-size:13px;line-height:1.5;border:1px solid #fecaca}
+[data-theme="dark"] .error-bar{background:#2d1515;color:#f87171;border-color:#3b1a1a}
+.error-bar.show{display:block}
+.content{flex:1;overflow-y:auto;padding-bottom:20px}
+.video-card{margin:12px 18px;background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)}
+.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--border2)}
+.info{padding:14px 16px}
+.info h3{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:4px}
+.info p{font-size:13px;color:var(--text2);line-height:1.5}
+.song-line{display:flex;align-items:center;gap:6px;margin-top:8px;padding:8px 12px;background:var(--accent-light);border-radius:10px}
+.song-icon{font-size:16px}
+.song-text{font-size:13px;color:var(--accent);font-weight:500}
+.actions{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap}
+.act-btn{flex:1;min-width:120px;padding:10px 14px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;color:#fff;text-align:center}
+.act-btn:active{transform:scale(.96)}
+.act-btn.video{background:var(--btn-blue)}
+.act-btn.audio{background:var(--btn-green)}
+.act-btn.song{background:var(--btn-purple)}
+.quality-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700}
+.q4k{background:#fee7e7;color:#dc2626}
+.q1080{background:#fef3c7;color:#d97706}
+.q720{background:#e8f4ff;color:#0066ff}
+.q480{background:#f0f0f0;color:#666}
+.qother{background:var(--accent-light);color:var(--accent)}
+.bottom-bar{display:none;padding:10px 18px;background:var(--card);border-top:1px solid var(--border);gap:8px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0))}
+.bottom-bar.show{display:flex}
+.bottom-bar button{flex:1;padding:10px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;transition:all .2s}
+.bottom-bar button:active{transform:scale(.96)}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <h1>网页信息复制工具</h1>
+    <span class="header-ver">v2.0</span>
+  </div>
+  <button class="toggle-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+</div>
+
+<div class="mode-bar" id="modeBar">
+  <button class="mode-btn active" data-mode="web" onclick="switchMode('web')">🌐 网页抓取</button>
+  <button class="mode-btn" data-mode="video" onclick="switchMode('video')">🎬 视频解析</button>
+</div>
+
+<div class="url-section">
+  <div class="url-row">
+    <input class="url-input" id="urlInput" type="text" placeholder="请输入网页地址 https://..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="paste-btn" onclick="pasteFromClipboard()" title="粘贴">📋</button>
+    <button class="fetch-btn" id="fetchBtn" onclick="doAction()">开始</button>
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="error-bar" id="errorMsg"></div>
+  <div id="videoResults"></div>
+  <div id="results"></div>
+  <div id="emptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;color:var(--text3);gap:12px">
+    <div style="font-size:48px;opacity:.4">📋</div>
+    <div style="font-size:16px;font-weight:600">粘贴链接，开始解析</div>
+    <div style="font-size:13px;text-align:center;line-height:1.6">支持抖音 / B站 / 快手 / 通用视频网站</div>
+  </div>
+</div>
+
+<div class="bottom-bar" id="bottomBar">
+  <button style="background:var(--btn-blue)" onclick="selectAll()">全选</button>
+  <button style="background:var(--btn-green)" onclick="copySelected()">复制选中</button>
+  <button style="background:var(--btn-purple)" onclick="exportSelected()">导出</button>
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">正在解析...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ======================== 代理 & 工具函数 ========================
+const PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest=',
+];
+
+let proxyIndex = 0;
+
+function getProxy(url) {
+  return PROXIES[proxyIndex] + encodeURIComponent(url);
+}
+
+function nextProxy() {
+  proxyIndex = (proxyIndex + 1) % PROXIES.length;
+}
+
+async function httpGet(url, referer) {
+  const opts = { signal: AbortSignal.timeout(15000) };
+  const headers = { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' };
+  if (referer) headers['Referer'] = referer;
+
+  const resp = await fetch(getProxy(url), { ...opts, headers });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.text();
+}
+
+async function fetchDirect(url, referer) {
+  const opts = { signal: AbortSignal.timeout(10000) };
+  const headers = { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15' };
+  if (referer) headers['Referer'] = referer;
+  const resp = await fetch(url, { ...opts, headers, redirect: 'follow' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.text();
+}
+
+function extractUrl(text) {
+  if (!text) return '';
+  text = text.trim();
+  const m = text.match(/https?:\/\/[^\s"'<>]+/i);
+  if (m) return m[0];
+  const m2 = text.match(/(?:v\.douyin\.com|vm\.tiktok\.com|b23\.tv|youtu\.be)\/[^\s"'<>]+/i);
+  if (m2) return 'https://' + m2[0];
+  return text;
+}
+
+function detectPlatform(url) {
+  const l = url.toLowerCase();
+  if (l.includes('bilibili.com') || l.includes('b23.tv')) return 'bilibili';
+  if (l.includes('douyin.com') || l.includes('iesdouyin.com')) return 'douyin';
+  if (l.includes('kuaishou.com')) return 'kuaishou';
+  if (l.includes('youtube.com') || l.includes('youtu.be')) return 'youtube';
+  if (l.includes('ixigua.com')) return 'ixigua';
+  if (l.includes('tiktok.com')) return 'tiktok';
+  return 'generic';
+}
+
+function extractMeta(html, name) {
+  const p1 = new RegExp('<meta[^>]*(?:name|property)=[\'"]' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\'"][^>]*content=[\'"]([^\'"]+)[\'"]', 'i');
+  const m1 = html.match(p1);
+  if (m1) return m1[1];
+  const p2 = new RegExp('<meta[^>]*content=[\'"]([^\'"]+)[\'"][^>]*(?:name|property)=[\'"]' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\'"]', 'i');
+  const m2 = html.match(p2);
+  if (m2) return m2[1];
+  return null;
+}
+
+function extractTagContent(html, tag) {
+  const p = new RegExp('<' + tag + '[^>]*>(.*?)</' + tag + '>', 'is');
+  const m = html.match(p);
+  return m ? m[1].trim() : null;
+}
+
+function removeWatermark(url) {
+  url = url.replace(/\/playwm\//, '/play/');
+  url = url.replace(/[&?]watermark=\d+/g, '');
+  url = url.replace(/[&?]logo=\d+/g, '');
+  url = url.replace(/[&?]wm=\d+/g, '');
+  if (!url.includes('watermark=')) url += (url.includes('?') ? '&' : '?') + 'watermark=0';
+  return url;
+}
+
+function getQualityLabel(h) {
+  if (h >= 2160) return '4K';
+  if (h >= 1440) return '2K';
+  if (h >= 1080) return '1080P';
+  if (h >= 720) return '720P';
+  if (h >= 480) return '480P';
+  if (h >= 360) return '360P';
+  return '流畅';
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function escAttr(s) {
+  return s.replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+}
+
+function sanitizeFilename(s) {
+  return s.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').substring(0, 60) || 'download';
+}
+
+// ======================== UI ========================
+let currentMode = 'web';
+
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doAction();
+});
+
+function toggleTheme() {
+  const d = document.documentElement;
+  const dark = d.getAttribute('data-theme') === 'dark';
+  d.setAttribute('data-theme', dark ? '' : 'dark');
+  document.getElementById('themeBtn').textContent = dark ? '🌙' : '☀️';
+  localStorage.setItem('theme', dark ? 'light' : 'dark');
+}
+
+(function initTheme() {
+  if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('themeBtn').textContent = '☀️';
+  }
+})();
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('show');
+}
+
+async function pasteFromClipboard() {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text && text.trim()) {
+      document.getElementById('urlInput').value = text.trim();
+      showToast('已粘贴');
+    }
+  } catch { showToast('无法读取剪贴板'); }
+}
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  const urlInput = document.getElementById('urlInput');
+  const results = document.getElementById('results');
+  const videoResults = document.getElementById('videoResults');
+  const bottomBar = document.getElementById('bottomBar');
+  const emptyState = document.getElementById('emptyState');
+
+  if (mode === 'video') {
+    urlInput.placeholder = '粘贴视频链接 (抖音/B站/快手/YouTube...)';
+    results.style.display = 'none';
+    videoResults.style.display = 'block';
+    bottomBar.classList.remove('show');
+  } else {
+    urlInput.placeholder = '请输入网页地址 https://...';
+    results.style.display = 'block';
+    videoResults.style.display = 'none';
+    bottomBar.classList.add('show');
+  }
+  emptyState.style.display = 'flex';
+  hideError();
+}
+
+function doAction() {
+  if (currentMode === 'video') parseVideoUrl();
+  else showToast('网页抓取请在 App 中使用');
+}
+
+// ======================== 视频解析（纯JS移植） ========================
+
+async function parseVideoUrl() {
+  const raw = document.getElementById('urlInput').value.trim();
+  if (!raw) { showError('请输入视频链接'); return; }
+
+  const url = extractUrl(raw);
+  const platform = detectPlatform(url);
+  hideError();
+  document.getElementById('videoResults').innerHTML = '';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('fetchBtn').disabled = true;
+  document.getElementById('loadingText').textContent = '正在解析视频信息...';
+
+  try {
+    let result;
+    switch (platform) {
+      case 'bilibili': result = await parseBilibili(url); break;
+      case 'douyin': result = await parseDouyin(url); break;
+      default: result = await parseGeneric(url); break;
+    }
+    result.platform = platform;
+    result.originalUrl = url;
+    renderVideoResult(result);
+  } catch (err) {
+    showError('解析失败: ' + err.message);
+    document.getElementById('emptyState').style.display = 'flex';
+  } finally {
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('fetchBtn').disabled = false;
+  }
+}
+
+async function parseBilibili(url) {
+  const bvid = url.match(/(BV[a-zA-Z0-9]{10})/);
+  if (!bvid) throw new Error('无法识别B站视频ID');
+
+  let apiUrl = 'https://api.bilibili.com/x/web-interface/view?bvid=' + bvid[1];
+  let jsonText;
+  try {
+    jsonText = await httpGet(apiUrl, 'https://www.bilibili.com');
+  } catch {
+    nextProxy();
+    jsonText = await httpGet(apiUrl, 'https://www.bilibili.com');
+  }
+  const data = JSON.parse(jsonText);
+  if (data.code !== 0) throw new Error('B站API错误: ' + data.message);
+
+  const vd = data.data;
+  const title = vd.title || '';
+  const desc = (vd.desc || '').substring(0, 200);
+  const thumb = (vd.pic || '').replace(/^http:/, 'https:');
+  const songName = vd.owner?.name || '';
+  const artist = '';
+
+  const videoUrls = [];
+  const audioUrls = [];
+
+  let cid = vd.cid;
+  let playUrl = 'https://api.bilibili.com/x/player/playurl?bvid=' + bvid[1] + '&cid=' + cid + '&qn=127&fnver=0&fnval=4048&fourk=1';
+  let playText;
+  try {
+    playText = await httpGet(playUrl, 'https://www.bilibili.com');
+  } catch {
+    nextProxy();
+    playText = await httpGet(playUrl, 'https://www.bilibili.com');
+  }
+  const playData = JSON.parse(playText);
+  if (playData.code === 0) {
+    const pd = playData.data;
+    const dash = pd.dash;
+    if (dash) {
+      if (dash.video) {
+        dash.video.forEach(v => {
+          let vu = v.baseUrl || v.base_url || '';
+          if (vu) {
+            videoUrls.push({ url: vu, label: v.width + 'x' + v.height, quality: getQualityLabel(v.height || 0), codecs: v.codecs || '' });
+          }
+        });
+      }
+      if (dash.audio) {
+        dash.audio.forEach(a => {
+          let au = a.baseUrl || a.base_url || '';
+          if (au) {
+            const bw = a.bandwidth || 0;
+            audioUrls.push({ url: au, quality: bw >= 320000 ? '320kbps' : (bw >= 128000 ? '128kbps' : '64kbps') });
+          }
+        });
+      }
+    }
+    if (pd.durl) {
+      pd.durl.forEach(d => {
+        if (d.url) videoUrls.push({ url: d.url, label: 'MP4', quality: '高清' });
+      });
+    }
+  }
+
+  return { title, description: desc, thumbnail: thumb, songName, artist, videoUrls, audioUrls };
+}
+
+async function parseDouyin(url) {
+  let finalUrl = url;
+  try {
+    const resp = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15' }
+    });
+    finalUrl = resp.url;
+  } catch {}
+
+  let html;
+  try {
+    html = await httpGet(finalUrl, null);
+  } catch {
+    nextProxy();
+    html = await httpGet(finalUrl, null);
+  }
+
+  let title = extractMeta(html, 'og:title') || extractTagContent(html, 'title') || '';
+  let desc = extractMeta(html, 'og:description') || extractMeta(html, 'description') || '';
+  let thumb = extractMeta(html, 'og:image') || '';
+  let songName = extractMeta(html, 'music:song') || extractMeta(html, 'music:title') || '';
+  let artist = extractMeta(html, 'music:artist') || '';
+
+  const videoUrls = [];
+
+  const patterns = [
+    /"play_addr"\s*:\s*\{[^}]*"url_list"\s*:\s*\["([^"]+)"/,
+    /"playAddr"\s*:\s*"([^"]+)"/,
+    /"video_url"\s*:\s*"([^"]+)"/,
+    /video_id.*?"playApi"\s*:\s*"([^"]+)"/,
+  ];
+
+  for (const pat of patterns) {
+    const m = html.match(pat);
+    if (m) {
+      let vUrl = m[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+      if (vUrl.startsWith('//')) vUrl = 'https:' + vUrl;
+      vUrl = removeWatermark(vUrl);
+      if (vUrl && !videoUrls.some(v => v.url === vUrl)) {
+        videoUrls.push({ url: vUrl, label: 'MP4', quality: '无水印' });
+      }
+    }
+  }
+
+  if (videoUrls.length === 0) {
+    const urlPattern = /https?:\/\/[^\s"'<>]+\.(?:mp4|m3u8)[^\s"'<>]*/g;
+    let m;
+    while ((m = urlPattern.exec(html)) !== null) {
+      const vUrl = removeWatermark(m[0]);
+      if (!videoUrls.some(v => v.url === vUrl)) {
+        videoUrls.push({ url: vUrl, label: vUrl.includes('m3u8') ? 'HLS' : 'MP4', quality: '无水印' });
+      }
+    }
+  }
+
+  return { title, description: desc, thumbnail: thumb, songName, artist, videoUrls, audioUrls: [] };
+}
+
+async function parseGeneric(url) {
+  let html;
+  try {
+    html = await httpGet(url, null);
+  } catch {
+    nextProxy();
+    html = await httpGet(url, null);
+  }
+
+  let title = extractMeta(html, 'og:title') || extractTagContent(html, 'title') || url;
+  let desc = extractMeta(html, 'og:description') || '';
+  let thumb = extractMeta(html, 'og:image') || '';
+  let songName = extractMeta(html, 'music:song') || '';
+  let artist = extractMeta(html, 'music:artist') || '';
+
+  const videoUrls = [];
+  const audioUrls = [];
+
+  const ogVideo = extractMeta(html, 'og:video') || extractMeta(html, 'og:video:url');
+  if (ogVideo) videoUrls.push({ url: ogVideo, label: 'MP4', quality: '高清' });
+
+  const videoTags = html.match(/<video[^>]*src=["']([^"']+)["'][^>]*>/gi);
+  if (videoTags) {
+    videoTags.forEach(v => {
+      const m = v.match(/src=["']([^"']+)["']/i);
+      if (m) {
+        const vu = m[1].startsWith('//') ? 'https:' + m[1] : m[1];
+        if (!videoUrls.some(x => x.url === vu)) videoUrls.push({ url: vu, label: 'MP4', quality: '默认' });
+      }
+    });
+  }
+
+  const sourceP = /<source[^>]*\bsrc=["']([^"']+)["'][^>]*\btype=["']([^"']+)["']/gi;
+  let sm;
+  while ((sm = sourceP.exec(html)) !== null) {
+    const item = { url: sm[1], label: sm[2], quality: '默认' };
+    if (sm[2].includes('video')) videoUrls.push(item);
+    else if (sm[2].includes('audio')) audioUrls.push(item);
+  }
+
+  const scriptP = /["'](https?:\/\/[^"']+\.(?:mp4|m3u8|flv|webm)(?:\?[^"']*)?)["']/gi;
+  while ((sm = scriptP.exec(html)) !== null) {
+    const vu = sm[1];
+    if (!videoUrls.some(x => x.url === vu)) videoUrls.push({ url: vu, label: vu.includes('m3u8') ? 'HLS' : 'MP4', quality: '默认' });
+  }
+
+  const audioP = /["'](https?:\/\/[^"']+\.(?:mp3|m4a|aac|ogg)(?:\?[^"']*)?)["']/gi;
+  while ((sm = audioP.exec(html)) !== null) {
+    const au = sm[1];
+    if (!audioUrls.some(x => x.url === au)) audioUrls.push({ url: au, quality: '默认' });
+  }
+
+  return { title, description: desc, thumbnail: thumb, songName, artist, videoUrls, audioUrls };
+}
+
+// ======================== 渲染 ========================
+function getPlatformIcon(p) {
+  const icons = { bilibili: '📺', douyin: '🎵', kuaishou: '⚡', youtube: '▶️', tiktok: '🎶', ixigua: '🍉', generic: '🎬' };
+  return icons[p] || '🎬';
+}
+
+function getQualityTag(q) {
+  if (!q) return '';
+  const lower = q.toLowerCase();
+  if (lower.includes('4k') || lower.includes('2160')) return '<span class="quality-tag q4k">4K</span>';
+  if (lower.includes('1080') || lower.includes('2k') || lower.includes('1440')) return '<span class="quality-tag q1080">1080P</span>';
+  if (lower.includes('720')) return '<span class="quality-tag q720">720P</span>';
+  if (lower.includes('480') || lower.includes('360')) return '<span class="quality-tag q480">480P</span>';
+  return '<span class="quality-tag qother">' + escHtml(q) + '</span>';
+}
+
+function renderVideoResult(result) {
+  const container = document.getElementById('videoResults');
+  const platform = result.platform || 'generic';
+  const title = result.title || '未知标题';
+  const desc = result.description || '';
+  const thumb = result.thumbnail || '';
+  const songName = result.songName || '';
+  const artist = result.artist || '';
+  const videoUrls = result.videoUrls || [];
+  const audioUrls = result.audioUrls || [];
+
+  let html = '<div class="video-card">';
+
+  if (thumb) {
+    html += '<img class="thumb" src="' + escAttr(thumb) + '" alt="" onerror="this.style.display=\'none\'">';
+  } else {
+    html += '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,#1a1a2e,#16213e)">' + getPlatformIcon(platform) + '</div>';
+  }
+
+  html += '<div class="info">';
+  html += '<h3>' + escHtml(title) + '</h3>';
+  if (desc) html += '<p>' + escHtml(desc) + '</p>';
+
+  if (songName) {
+    html += '<div class="song-line">';
+    html += '<span class="song-icon">🎶</span>';
+    html += '<span class="song-text">' + escHtml(songName);
+    if (artist) html += ' - ' + escHtml(artist);
+    html += '</span></div>';
+  }
+  html += '</div>';
+
+  if (videoUrls.length > 0 || audioUrls.length > 0) {
+    html += '<div class="actions">';
+
+    videoUrls.forEach((v, i) => {
+      const label = v.quality || v.label || '视频';
+      html += '<button class="act-btn video" onclick="downloadVideo(\'' + escAttr(v.url) + '\', \'' + escAttr(title) + '\')">下载' + (videoUrls.length > 1 ? ' (' + escHtml(label) + ')' : '') + '</button>';
+    });
+
+    audioUrls.forEach((a, i) => {
+      const label = a.quality || '音频';
+      html += '<button class="act-btn audio" onclick="downloadAudio(\'' + escAttr(a.url) + '\', \'' + escAttr(title) + '\')">下载音频 (' + escHtml(label) + ')</button>';
+    });
+
+    html += '</div>';
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ======================== 下载（iOS PWA） ========================
+function downloadVideo(url, title) {
+  const filename = sanitizeFilename(title) + '.mp4';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('正在打开视频...\n长按可保存到相册');
+}
+
+function downloadAudio(url, title) {
+  const filename = sanitizeFilename(title) + '.mp3';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('正在打开音频...');
+}
+
+// ======================== PWA 注册 ========================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
